@@ -1,15 +1,3 @@
-/**
- * ScreenCast Signaling Server
- * 
- * This server handles WebRTC signaling between broadcaster and viewers.
- * It manages rooms, forwards SDP offers/answers, and relays ICE candidates.
- * 
- * Architecture:
- * - Express for HTTP server
- * - Socket.io for real-time signaling
- * - Room-based system: one broadcaster, many viewers
- */
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -19,18 +7,40 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const server = http.createServer(app);
 
-// Configure Socket.io with CORS for cross-origin connections
+// Configure Socket.io with dynamic CORS
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+].filter(Boolean);
+
 const io = new Server(server, {
   cors: {
-    origin: '*',        // In production, restrict to your frontend domain
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl) or allowed origins
+      if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true
   },
-  pingTimeout: 60000,   // 60s ping timeout for stable connections
-  pingInterval: 25000   // 25s ping interval
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // ─── Room Registry ──────────────────────────────────────────────────────────
