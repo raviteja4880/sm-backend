@@ -53,12 +53,13 @@ const io = new Server(server, {
 const { rooms } = initializeSockets(io);
 
 // 4. API Routes
-// Root route for health check pings (stops 404 logs)
-app.get('/', (req, res) => {
+const apiRouter = express.Router();
+
+apiRouter.get('/', (req, res) => {
   res.status(200).send('ScreenCast Signaling Server is Live 🚀');
 });
 
-app.get('/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     environment: config.env,
@@ -67,16 +68,16 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.get('/create-room', (req, res) => {
+apiRouter.get('/create-room', (req, res) => {
   const roomId = uuidv4().split('-')[0].toUpperCase();
   res.json({ roomId });
 });
 
-app.get('/room/:roomId', (req, res) => {
+apiRouter.get('/room/:roomId', (req, res) => {
   const { roomId } = req.params;
   const room = rooms.get(roomId);
   if (!room) return res.status(404).json({ exists: false, message: 'Room not found' });
-  
+
   res.json({
     exists: true,
     hasBroadcaster: !!room.broadcasterId,
@@ -84,6 +85,12 @@ app.get('/room/:roomId', (req, res) => {
     createdAt: room.createdAt
   });
 });
+
+// Mount the router under /api
+app.use('/api', apiRouter);
+
+// Root route for health check pings (stops 404 logs from basic Render pings)
+app.get('/', (req, res) => res.status(200).send('Server is alive!'));
 
 // 5. Global Error Handling
 app.use(notFoundHandler);
