@@ -53,12 +53,17 @@ const io = new Server(server, {
 const { rooms } = initializeSockets(io);
 
 // 4. API Routes
+// Root route for health check pings (stops 404 logs)
+app.get('/', (req, res) => {
+  res.status(200).send('ScreenCast Signaling Server is Live 🚀');
+});
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    rooms: rooms.size,
-    uptime: process.uptime(),
-    version: '1.0.0'
+    environment: config.env,
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString()
   });
 });
 

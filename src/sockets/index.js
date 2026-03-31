@@ -6,7 +6,12 @@ const initializeSockets = (io) => {
   const rooms = new Map();
 
   io.on('connection', (socket) => {
-    logger.info(`Client connected: ${socket.id} (IP: ${socket.handshake.address})`);
+    // Check for potential duplicate connections or stale IDs
+    if (socket.recovered) {
+      logger.info(`Reconnected client: ${socket.id}`);
+    } else {
+      logger.info(`New client connection: ${socket.id}`);
+    }
 
     // Existing broadcaster/viewer logic moved here with enhanced logging
     socket.on('broadcaster-join', ({ roomId }) => {
